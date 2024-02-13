@@ -1,0 +1,209 @@
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+    border-radius: 10px;
+
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #888; 
+    border-radius: 10px;
+
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #555; 
+  }
+
+  .item_description {
+    display: inline-block;
+    width: 180px;
+    white-space: nowrap;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+}
+
+td {
+  border: none !important;
+  border-bottom: 0.5px solid #c5bcbc !important;
+  border-right: 0.5px solid #c5bcbc !important;
+  border-radius: unset !important;
+  color: #333 !important;
+  font-family: Roboto !important;
+  font-size: 16px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  line-height: normal !important;
+  width: auto !important;
+}
+
+
+td:first-child {
+  border-left: none !important;
+}
+
+td:last-child {
+  border-right: none !important;
+}
+
+th {
+  color: #FFF !important;
+  font-family: Roboto !important;
+  font-size: 20px !important;
+  font-style: normal !important;
+  font-weight: 500 !important;
+  line-height: normal !important;
+  border-bottom: 0.5px solid #c5bcbc !important;
+  text-wrap: nowrap;
+}
+.innertable th {
+  font-size: 18px !important;
+}
+
+p.company_filter {
+  color: #333;
+  font-family: Roboto;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+}
+main.mainTheme .css-e5ffgh-MuiPaper-root-MuiCard-root {
+  border-color: #dfdfdf;
+}
+main.mainTheme .css-1nvdc5e-MuiCardHeader-root {
+  background-color: #dfdfdf;
+}
+.mainTheme .css-17pmaar-MuiCardContent-root {
+  padding: 0;
+}
+.mainTheme .css-mq6j2m-MuiFormControl-root {
+  background: #dfdfdf;
+  margin-bottom: 0;
+  padding-bottom: 30px;
+}
+.css-nbr19s-MuiDivider-root {
+  border-color: #dfdfdf;
+}
+main.mainTheme .custom-scrollbar {
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+.pagination {
+  background: #fff;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  margin-bottom: 40px;
+}
+
+.outerBoxClass {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #fff;
+}
+.titleClass {
+  background-color: #40434E;
+  width: 100%;
+  color: #FFF;
+  text-align: center;
+  font-family: Roboto;
+  font-size: 25px;
+  font-style: normal;
+  font-weight: 700;
+  padding-bottom: 15px;
+  padding-top: 15px;
+}
+.contentClass {
+  color: #333;
+  font-family: Roboto;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+}
+.popupConfirm {
+    background-color: #40434E;
+    color: #FFF;
+    font-family: Roboto;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    text-transform: uppercase;
+    border-radius: 15px;
+    padding: 13px;
+    margin-bottom: 20px;
+}
+.popupConfirm:hover {
+  background-color: #40434E;
+}
+.popupCancel {
+  color: #333;
+  font-family: Roboto;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  text-transform: uppercase;
+  border: 1px solid #333;
+  padding: 13px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+  margin-right: 20px;
+}
+
+.editField {
+  border: none !important;
+  background-color: #fff !important;
+}
+
+.editField:hover {
+  border: none !important;
+  background-color: #fff !important;
+}
+
+
+@media screen and (max-width: 767px) {
+.upperPart {
+  flex-direction: column;
+  align-items: baseline;
+}
+.selectbar {
+  margin-left: 0;
+  margin: 16px 0;
+}
+ }
+
+ /* .Mui-focused .inputPropsInner {
+  background: #eaebed;
+  border-radius: 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 100;
+} */
+/* .Mui-focused {
+  border:none;
+  border-radius: 0;
+  background: #f8fafc;
+} */
+/* .Mui-focused  fieldset {
+  border: none !important;
+} */
+
+.inputPropsInner {
+  font-size: 16px;
+  font-weight: 100;
+  /* background-color: #e3e3e3; */
+  /* color: black;
+  border-radius: unset !important; */
+}
+
+/* .InnerTable td {
+  text-wrap: nowrap;
+} */
