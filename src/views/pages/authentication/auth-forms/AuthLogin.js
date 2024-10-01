@@ -30,8 +30,11 @@ import useScriptRef from "hooks/useScriptRef";
 import AnimateButton from "ui-component/extended/AnimateButton";
 import Message from "ui-component/components/Snackbar/Snackbar";
 import Axios from "api/Axios";
+import axios from "axios";
 import { API } from "api/API";
 import Loading from "ui-component/components/Loading";
+import { loginRequest } from "authConfig";
+import { useMsal } from "@azure/msal-react";
 
 // ============================|| FIREBASE - LOGIN ||============================ //
 
@@ -65,6 +68,7 @@ const FirebaseLogin = ({ ...others }) => {
   };
 
   const navigate = useNavigate();
+  const { instance } = useMsal();
 
   const handleSubmit = async (
     values,
@@ -72,45 +76,56 @@ const FirebaseLogin = ({ ...others }) => {
   ) => {
     try {
       setIsLoading(true);
-      const result = await Axios.post(API.Login, values);
-      // console.log("Res", result.data);
-      if (result.status === 200) {
-        setIsLoading(false);
-        Cookies.set("userToken", result.data.token, { expires: 1 });
-        const data = JSON.stringify(result.data.userData);
-        localStorage.setItem("Profile_Details", data);
-        // window.location.reload();
-        if (scriptedRef.current) {
-          setStatus({ success: true });
-          setSubmitting(false);
-        }
-        navigate("/clustered-matches");
-      }
-    } catch (err) {
+      await instance.loginRedirect({...loginRequest, prompt: 'create'}).catch((err) => console.log(err));
       setIsLoading(false);
-      console.log(err, "Hello I am an Error ");
+      // const result = await axios.post(API.Login, values);
+      // console.log("Res", result.data);
+      // if (result?.status === 200) {
+      //   setIsLoading(false);
+      //   Cookies.set("userToken", result?.data?.accessToken, { expires: 1 });
+      //   const data = JSON.stringify(result?.data?.userData);
+      //   localStorage.setItem("Profile_Details", data);
+      //   if (scriptedRef.current) {
+      //     setStatus({ success: true });
+      //     setSubmitting(false);
+      //   }
+      //   navigate("/");
+      // }
+    } catch (error) {
+      setIsLoading(false);
+      console.log(error, "Hello I am an Error ");
       if (scriptedRef.current) {
         setStatus({ success: false });
-        setErrors({ submit: err.message });
+        setErrors({ submit: error?.message });
         setSubmitting(false);
       }
-      if (err.response.status === 401 || err.response.status === 500) {
-        console.log(err.response.data.error, "hello");
-        setSnackbar({
-          open: true,
-          severity: "error",
-          message: err.response.data.error,
-        });
-      }
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message: error?.response?.data?.error ?? error?.response?.data?.message ?? error?.message
+      });
     }
   };
+
+  useEffect(() => {
+    const handleRedirect = async () => {
+      try {
+        await instance.handleRedirectPromise();
+      } catch (error) {
+        // Handle redirect error
+        console.error("Redirect error:", error);
+      }
+    };
+
+    handleRedirect();
+  }, [instance]);
 
   return (
     <>
       <Formik
         initialValues={{
           email: "",
-          password: "",
+          // password: "",
           // submit: null,
         }}
         validationSchema={Yup.object().shape({
@@ -118,7 +133,7 @@ const FirebaseLogin = ({ ...others }) => {
             .email("Must be a valid email")
             .max(255)
             .required("Email is required"),
-          password: Yup.string().max(255).required("Password is required"),
+          // password: Yup.string().max(255).required("Password is required"),
         })}
         onSubmit={handleSubmit}
       >
@@ -138,7 +153,7 @@ const FirebaseLogin = ({ ...others }) => {
               sx={{ ...theme.typography.customInput }}
             >
               <InputLabel htmlFor="outlined-adornment-email-login">
-                Email Address / Username
+                Email Address
               </InputLabel>
               <OutlinedInput
                 id="outlined-adornment-email-login"
@@ -147,7 +162,7 @@ const FirebaseLogin = ({ ...others }) => {
                 name="email"
                 onBlur={handleBlur}
                 onChange={handleChange}
-                label="Email Address / Username"
+                label="Email Address"
                 inputProps={{}}
               />
               {touched.email && errors.email && (
@@ -160,7 +175,7 @@ const FirebaseLogin = ({ ...others }) => {
               )}
             </FormControl>
 
-            <FormControl
+            {/* <FormControl
               fullWidth
               error={Boolean(touched.password && errors.password)}
               sx={{ ...theme.typography.customInput }}
@@ -199,7 +214,7 @@ const FirebaseLogin = ({ ...others }) => {
                   {errors.password}
                 </FormHelperText>
               )}
-            </FormControl>
+            </FormControl> */}
 
             <Box sx={{ mt: 2 }}>
               <AnimateButton>
@@ -216,7 +231,7 @@ const FirebaseLogin = ({ ...others }) => {
                     color: isSubmitting && "#fff",
                   }}
                 >
-                  Sign in
+                  Sign in with Microsoft
                 </Button>
               </AnimateButton>
             </Box>

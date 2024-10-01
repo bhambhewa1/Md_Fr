@@ -1,31 +1,62 @@
 import React, { useState, useEffect } from "react";
-import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
-import { BiSolidRightArrow } from "react-icons/bi";
-import { BiSolidDownArrow } from "react-icons/bi";
-import { BiSolidEdit } from "react-icons/bi";
+import {
+  Autocomplete,
+  Button,
+  Menu,
+  MenuItem,
+  TextField,
+  Tooltip,
+  Box,
+  Collapse,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+  TableSortLabel,
+  Paper,
+  Avatar,
+} from "@mui/material";
+import { FaAnglesRight } from "react-icons/fa6";
+import { makeStyles } from "@mui/styles";
+
+// Icons
+import {
+  BiSolidRightArrow,
+  BiSolidDownArrow,
+  BiSolidEdit,
+} from "react-icons/bi";
+import { MdOutlineContentCopy, MdCancel } from "react-icons/md";
 import { IoEllipsisVerticalSharp } from "react-icons/io5";
-import { IoMdAddCircleOutline } from "react-icons/io";
-import { MdOutlineContentCopy } from "react-icons/md";
+import { IoMdAddCircleOutline, IoMdSearch } from "react-icons/io";
 import { FiSave } from "react-icons/fi";
 import { FcApproval } from "react-icons/fc";
-import { MdCancel } from "react-icons/md";
+import { GiNotebook } from "react-icons/gi";
+
+// Components
 import Popup from "ui-component/components/Popup";
-import { Button, Menu, MenuItem, TextField, Tooltip } from "@mui/material";
-import { makeStyles } from "@mui/styles";
 import "./style.css";
 import LongMenu from "ui-component/menu-cluster/ClusterMenu";
 import Loading from "ui-component/components/Loading";
 import Message from "ui-component/components/Snackbar/Snackbar";
 import Axios from "api/Axios";
 import { API } from "api/API";
+import { columns, requiredKeys } from "./ClusteredColumns";
+import { useRef } from "react";
+import { EventsAPIs, removeSpacesAndNonASCII } from "utils/global_functions";
+import {
+  ADD_ROW_CLUSTERED,
+  APPROVE_ROW_CLUSTERED,
+  COPY_ROW_CLUSTERED,
+  DELETE_ROW_CLUSTERED,
+  EDIT_ROW_CLUSTERED,
+  FILL_ALL_FIELDS_CLUSTERED,
+  SAVE_APPROVE_ROW_CLUSTERED,
+  SAVE_ROW_CLUSTERED,
+  WEB_SEARCH_CLUSTERED,
+} from "store/actions";
 
 const useStyles = makeStyles((theme) => ({
   textField: {
@@ -45,9 +76,13 @@ const useStyles = makeStyles((theme) => ({
         borderColor: "transparent", // Remove border on hover
         borderRadius: "0px",
       },
+      // "& .MuiInputBase-input": {
+      //   padding: 0,
+      // },
       "&.Mui-focused": {
         border: "1px solid #1a73e8",
         borderRadius: 0,
+        textAlign: "center",
         // background: "#f8fafc",
       },
       "&.Mui-focused fieldset": {
@@ -64,65 +99,48 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const NotEditableFieldsComponent = ({ innerRow }) =>
+  columns.slice(4, columns.length - 2).map((column) => (
+    <TableCell className="global_table" align="center" key={column.id}>
+      {innerRow[column?.columnKey] ? innerRow[column?.columnKey] : ""}
+    </TableCell>
+  ));
+
+const CustomPaper = (props) => (
+  <Paper {...props} style={{ backgroundColor: "#DFDFDF" }} />
+);
+
 const Row = ({
   parent_id,
+  batchId,
   defaultArray,
   outerObject,
   index,
-  company,
+  page,
   GetCompanyData,
+  setPage,
+  onRef,
 }) => {
   const classes = useStyles();
   const [open, setOpen] = useState(false);
-  const columns = [
-    { id: "mf_id", columnKey: "ManufacturerId", label: "ManufacturerId" },
-    {
-      id: "mf_catlog",
-      columnKey: "ManufacturerCatalogNumber",
-      label: "MCN",
-    },
-    {
-      id: "item_desc",
-      columnKey: "ItemDescription",
-      label: "ItemDescription",
-    },
-    { id: "company", columnKey: "Company", label: "Company" },
-    { id: "group", columnKey: "Group", label: "Group" },
-    { id: "business", columnKey: "Business", label: "Business" },
-    { id: "division", columnKey: "Division", label: "Division" },
-    { id: "therapy", columnKey: "Therapy", label: "Therapy" },
-    { id: "specialty", columnKey: "Specialty", label: "Specialty" },
-    { id: "anatomy", columnKey: "Anatomy", label: "Anatomy" },
-    { id: "sub_anatomy", columnKey: "SubAnatomy", label: "SubAnatomy" },
-    {
-      id: "prod_category",
-      columnKey: "ProductCategory",
-      label: "ProductCategory",
-    },
-    { id: "prod_family", columnKey: "ProductFamily", label: "ProductFamily" },
-    { id: "model", columnKey: "Model", label: "Model" },
-    { id: "prod_code", columnKey: "productCode", label: "ProductCode" },
-    {
-      id: "prod_code_name",
-      columnKey: "productCodeName",
-      label: "ProductCodeName",
-    },
-    { id: "action", columnKey: "Action", label: "Action" },
-  ];
   const [anchorEl, setAnchorEl] = useState(null);
   const [anchorE2, setAnchorE2] = useState(null);
+  const [anchorE3, setAnchorE3] = useState(null);
   const [innerArray, setInnerArray] = useState(defaultArray);
   const [arrayIndex, setArrayIndex] = useState();
   const [popupOpen, setPopupOpen] = useState({
     open: false,
     type: "save&approve/cancel",
   });
-  const [isEditClick, setIsEditClick] = useState(false);
+  const [editClickID, setEditClickID] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [focusedColumn, setFocusedColumn] = useState(null);
-  const [totalRow, setTotalRow] = useState({ addRow: 0, editRow: 0 });
+  const [disableColon, setDisableColon] = useState(false);
+  const [disableRowOption, setDisableRowOption] = useState(false);
   const [UniqueId, setUniqueId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [previousRow, setPreviousRow] = useState();
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -135,28 +153,35 @@ const Row = ({
       severity: snackbar.severity,
     });
   };
+
   const handleMenuClose = () => {
     setAnchorEl(null);
     setAnchorE2(null);
+    setAnchorE3(null);
   };
 
-  const saveInJSONFile = async (iscopy, copiedData) => {
+  const AddEditCopyData = async (iscopy, copiedData) => {
     // GET LAST ROW FROM ARRAY AND SAVE THAT
+    let AllfieldsMandatory = "";
     const data = {
-      filename: `${company}.json`,
-      key: { parent_id: parent_id, iscopy },
-      details: iscopy ? copiedData : innerArray[innerArray.length - 1],
+      obj_id: parent_id,
+      uniqueId: UniqueId,
+      action: iscopy ? "copy" : UniqueId ? "edit" : "add",
+      details: iscopy
+        ? copiedData
+        : UniqueId
+        ? innerArray[arrayIndex]
+        : innerArray[innerArray.length - 1],
     };
-    // console.log("new row added", data);
     try {
       setIsLoading(true);
-      const res = await Axios.post(API.Save_Company_Data, data);
+      const res = await Axios.post(API.Add_Edit_Copy_Company_Data, data);
       if (res) {
         setSnackbar({
           open: true,
           message: res.data.message,
         });
-        setInnerArray(res.data.innerArray);
+        setInnerArray([...res.data.clusteredPoints]);
         setIsLoading(false);
       }
     } catch (error) {
@@ -164,88 +189,97 @@ const Row = ({
       setSnackbar({
         open: true,
         severity: "error",
-        message: error.message,
+        message:
+          error?.response?.data?.error ??
+          error?.response?.data?.message ??
+          error?.message,
       });
       setIsLoading(false);
     }
   };
 
   const approve_OR_saveApprove = async (uniqueId) => {
+    let AllfieldsMandatory = "";
     let data = {
-      filename: `${company}.json`,
-      key: {
-        parent_id: parent_id,
-        uniqueId: uniqueId ? UniqueId : "",
-        action: uniqueId ? "approve" : "saveAndApprove",
-      },
+      obj_id: parent_id,
+      uniqueId: uniqueId ? UniqueId : "",
+      action: uniqueId ? "approve" : "saveAndApprove",
       details: uniqueId ? { approvel_status: 1 } : innerArray[arrayIndex],
+      created_date: outerObject?.created_date,
+      batchId,
+      email: JSON.parse(localStorage.getItem("Profile_Details"))?.email,
     };
-    try {
-      setIsLoading(true);
-      const res = await Axios.post(API.Approve_OR_SaveApprove, data);
-      if (res) {
-        setSnackbar({
-          open: true,
-          message: res.data.message,
-        });
-        setTimeout(() => {
-          GetCompanyData(company);
-        }, 1000);
-        // setIsLoading(false);
-      }
-    } catch (error) {
-      console.log("ERROR in approve or save&approve file", error);
-      setSnackbar({
-        open: true,
-        severity: "error",
-        message: error.message,
-      });
-      setIsLoading(false);
-    }
-  };
+    // console.log("inner",data)
 
-  const Save_Edited_Data = async () => {
-    const data = {
-      filename: `${company}.json`,
-      key: { parent_id: parent_id, uniqueId: UniqueId },
-      details: innerArray[arrayIndex],
-    };
-    // console.log("double edited data",data)
-    try {
-      setIsLoading(true);
-      const res = await Axios.post(API.Save_Edited_Company_Data, data);
-      if (res) {
+    let obj = innerArray[arrayIndex];
+    for (let field of requiredKeys) {
+      if (!obj[field]) {
         setSnackbar({
           open: true,
-          message: res.data.message,
+          severity: "error",
+          message: "Please fill out all the fields first",
+        });
+        AllfieldsMandatory = "true";
+        break; // Exit the loop early since we already found an empty field
+      }
+    }
+
+    if (AllfieldsMandatory === "true") {
+      console.log(innerArray[arrayIndex]);
+    } else {
+      try {
+        setIsLoading(true);
+        const res = await Axios.post(API.Approve_OR_SaveApprove, data);
+        if (res) {
+          setSnackbar({
+            open: true,
+            message: res.data.message,
+          });
+          if (data?.action === "saveAndApprove") {
+            await compareFillAllValues(data?.details);
+            await EventsAPIs(batchId, SAVE_APPROVE_ROW_CLUSTERED);
+          }else{
+            await EventsAPIs(batchId, APPROVE_ROW_CLUSTERED);
+          }
+
+          setTimeout(() => {
+            if (setPage !== "samePage") {
+              setPage(page - 1);
+            } else {
+              GetCompanyData();
+            }
+          }, 1000);
+          // setIsLoading(false);
+        }
+      } catch (error) {
+        console.log("ERROR in approve or save&approve file", error);
+        setSnackbar({
+          open: true,
+          severity: "error",
+          message:
+            error?.response?.data?.error ??
+            error?.response?.data?.message ??
+            error?.message,
         });
         setIsLoading(false);
       }
-    } catch (error) {
-      console.log("ERROR in saving file", error);
-      setSnackbar({
-        open: true,
-        severity: "error",
-        message: error.message,
-      });
-      setIsLoading(false);
     }
   };
 
   const removeFromArray = async (index) => {
     // if (UniqueId === undefined || UniqueId === "" || UniqueId === null)
     if (!UniqueId) {
-      setInnerArray(innerArray.slice(0, innerArray.length - 1));
+      setInnerArray(innerArray.slice(0, -1));
     } else {
       try {
         let data = {
-          filename: `${company}.json`,
-          key: { parent_id: parent_id, uniqueId: UniqueId },
+          obj_id: parent_id,
+          uniqueId: UniqueId,
         };
         setIsLoading(true);
         const res = await Axios.post(API.Delete_Row, data);
         if (res?.data) {
-          setInnerArray(res?.data?.innerArray);
+          setInnerArray([...res?.data?.clusterPoints]);
           setSnackbar({
             open: true,
             message: res?.data?.message,
@@ -256,33 +290,16 @@ const Row = ({
         setSnackbar({
           open: true,
           severity: "error",
-          message: error.message,
+          message:
+            error?.response?.data?.error ??
+            error?.response?.data?.message ??
+            error?.message,
         });
       }
       setIsLoading(false);
     }
   };
 
-  const ResetTotalRows = () => {
-    if (totalRow.addRow === 1 && totalRow.editRow === 1) {
-      setTotalRow({
-        addRow: 0,
-        editRow: 0,
-      });
-    }
-    if (totalRow.addRow === 1 && totalRow.editRow === 0) {
-      setTotalRow({
-        ...totalRow,
-        addRow: 0,
-      });
-    }
-    if (totalRow.editRow === 1 && totalRow.addRow === 0) {
-      setTotalRow({
-        ...totalRow,
-        editRow: 0,
-      });
-    }
-  };
   const handleApprove = () => {
     setPopupOpen({
       open: true,
@@ -291,20 +308,21 @@ const Row = ({
   };
 
   const initializeRow = (isCopy) => {
-    // console.log("arr",innerArray)
-    // console.log("ind",arrayIndex)
     let newRow = {};
     columns.slice(0, columns.length - 1).map((item) => {
       const rowKey = item.columnKey;
       switch (rowKey) {
         case "ManufacturerId":
-          newRow[rowKey] = `${outerObject.ManufacturerId}`;
+          newRow[rowKey] = `${outerObject?.ManufacturerId}`;
           break;
         case "ManufacturerCatalogNumber":
-          newRow[rowKey] = outerObject.ManufacturerCatalogNumber;
+          newRow[rowKey] = outerObject?.ManufacturerCatalogNumber;
           break;
         case "ItemDescription":
-          newRow[rowKey] = outerObject.ItemDescription;
+          newRow[rowKey] = outerObject?.ItemDescription;
+          break;
+        case "Company":
+          newRow[rowKey] = outerObject?.Company;
           break;
         default:
           newRow[rowKey] = isCopy ? innerArray[arrayIndex][rowKey] : "";
@@ -314,20 +332,118 @@ const Row = ({
     return newRow;
   };
 
-  const handleAddRow = () => {
-    if (totalRow.addRow === 1) {
-      setSnackbar({
-        open: true,
-        severity: "error",
-        message: "Please save current row, Max 1 row can be added",
-      });
-      return;
-    } else {
-      const newRow = initializeRow();
-      setInnerArray([...innerArray, newRow]);
-      setTotalRow({ ...totalRow, addRow: 1 });
+  const isValueOfRowChanged = () => {
+    const currentRow = innerArray[arrayIndex];
+    let flag = false;
+
+    if (!previousRow) {
+      return flag;
+    }
+    columns.slice(4, columns.length - 1).forEach((item, index) => {
+      if (currentRow[item.columnKey] !== previousRow[item.columnKey]) {
+        flag = true;
+      }
+    });
+    return flag;
+  };
+
+  const compareFillAllValues = async (fillObject) => {
+    let keys = requiredKeys.slice(4);
+    keys.push("comment");
+
+    let flag = keys.every((item) => {
+      switch (item) {
+        case "Model":
+        case "comment":
+          return fillObject[item].trim() !== "" && fillObject[item].trim() === "-";
+        default:
+          return fillObject[item].trim() !== "" && fillObject[item].trim() === "Other";
+      }
+    });
+
+    if (flag) {
+      await EventsAPIs(batchId, FILL_ALL_FIELDS_CLUSTERED);
     }
   };
+
+  const FillEmptyCells = () => {
+    // Clone innerArray to ensure immutability
+    const newInnerArray = [...innerArray];
+    let newRow = { ...newInnerArray[arrayIndex] };
+    // console.log("my prev",previousRow)
+    // Clone newRow before setting it as previousRow
+    setPreviousRow({ ...newRow });
+
+    columns.slice(0, columns.length - 1).forEach((item) => {
+      const rowKey = item.columnKey;
+      switch (rowKey) {
+        case "Model":
+        case "comment":
+          newRow[rowKey] = innerArray[arrayIndex][rowKey]
+            ? innerArray[arrayIndex][rowKey]
+            : "-";
+          break;
+        default:
+          newRow[rowKey] = innerArray[arrayIndex][rowKey]
+            ? innerArray[arrayIndex][rowKey]
+            : "Other";
+      }
+    });
+
+    // Adding a condition for edit in a JSON FILE
+    newRow["isEditRow"] = 1;
+
+    // Update the innerArray state
+    setInnerArray((prevState) => {
+      return prevState.map((item, i) => {
+        if (i === arrayIndex) {
+          return newRow;
+        }
+        return item;
+      });
+    });
+    return newRow;
+  };
+
+  const handleAddRow = () => {
+    let newRow = initializeRow();
+    // console.log("inner", innerArray);
+    setInnerArray([...innerArray, newRow]);
+    return newRow;
+  };
+
+  const scrollbarRef = useRef(null);
+  const handleScrollbarClick = (event) => {
+    if (scrollbarRef.current) {
+      const scrollDistance = scrollbarRef.current.scrollWidth;
+      // console.log(scrollDistance, "nice");
+      setTimeout(() => {
+        scrollbarRef.current.scrollLeft = scrollDistance;
+      }, 0);
+    }
+  };
+
+  const QueryString = (searchString) => {
+    let query = searchString;
+    query = encodeURIComponent(query).replace(/[!'()*&, ]/g, (char) => {
+      return "%" + char.charCodeAt(0).toString(16);
+    });
+    return query;
+  };
+
+  const handleLink = async () => {
+    let Company_String = await QueryString(outerObject?.Company);
+    let MCN_String = await QueryString(outerObject?.ManufacturerCatalogNumber);
+    let ItemDes_String = await QueryString(outerObject?.ItemDescription);
+    window.open(
+      `https://www.google.com/search?q=${Company_String}+${MCN_String}+${ItemDes_String}`,
+      "_blank"
+    );
+    // window.open(`https://www.google.com/search?q=${outerObject?.Company}+${outerObject?.ManufacturerCatalogNumber}+${outerObject?.ItemDescription}`, '_blank');
+  };
+
+  const options = [];
+  const modelOptions = [];
 
   return (
     <>
@@ -336,8 +452,79 @@ const Row = ({
         // key={parent_id}
         sx={{ "& > *": { borderBottom: "unset" } }}
       >
-        <TableCell sx={{ minWidth: "75px" }}>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
+        {popupOpen.open && (
+          <Popup
+            open={popupOpen.open}
+            overflowY="auto"
+            height="220px"
+            outerBoxClass="outerBoxClass"
+            titleClass="titleClass"
+            contentClass="contentClass"
+            title="Alert"
+            content="Are you sure you want to proceed?"
+            actions={
+              <>
+                <Button
+                  className="popupCancel"
+                  onClick={() => {
+                    setPopupOpen({ open: false });
+                    handleMenuClose();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="popupConfirm"
+                  disabled={isLoading}
+                  onClick={async () => {
+                    // Popup for editing row on save & approve Confirm button
+                    if (popupOpen.type === "save&Approve") {
+                      approve_OR_saveApprove();
+                    }
+                    // Popup for editing row on cancel Confirm button
+                    if (popupOpen.type === "delete") {
+                      removeFromArray();
+                    }
+                    // Popup for already exiting row on Approve button
+                    if (popupOpen.type === "Approve") {
+                      approve_OR_saveApprove(UniqueId);
+                    }
+                    // Popup for filling all cells without information (other)
+                    if (popupOpen.type === "fill_all_cells") {
+                      // console.log(UniqueId,"fill all values")
+                      // const filledRow = initializeRow(2);
+                      // let newArray = innerArray.slice(0, -1);
+                      // setInnerArray([...newArray,filledRow]);
+                      const newRow = FillEmptyCells();
+                      setEditClickID(null); // operated data deleted from that table, so not show already edited row
+                    }
+                    // For close popup and menu's and reset count of add or edit row
+                    setDisableColon(false);
+                    setDisableRowOption(false);
+                    setArrayIndex(null);
+                    // setEditClickID(null)    // operated data deleted from that table, so not show already edited row
+                    // and working fine on fill_all__cells
+                    // setUniqueId(null)       // Commented because it use for colons only and it only effect the
+                    // colon's options but every time popup close after performed any operation and we need to
+                    // reopen it for other operations again its click uniqueId set.
+                    setPopupOpen({ open: false });
+                    handleMenuClose();
+                  }}
+                >
+                  Confirm
+                </Button>
+              </>
+            }
+          />
+        )}
+        <TableCell className="global_table" sx={{ minWidth: "75px" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <IconButton
               aria-label="expand row"
               size="small"
@@ -359,27 +546,70 @@ const Row = ({
         </TableCell>
         {outerObject && (
           <>
-            <TableCell align="center" component="td" scope="row">
-              {outerObject?.ManufacturerId
-                ? outerObject?.ManufacturerId
-                : "N/A"}
+            <TableCell
+              className="global_table"
+              align="center"
+              component="td"
+              scope="row"
+            >
+              {outerObject?.ManufacturerId ? outerObject?.ManufacturerId : ""}
             </TableCell>
-            <TableCell align="center">
+            <TableCell className="global_table" align="center">
               {outerObject?.ManufacturerCatalogNumber
                 ? outerObject?.ManufacturerCatalogNumber
-                : "N/A"}
+                : ""}
             </TableCell>
-            <TableCell sx={{ width: "360px" }}>
-              {outerObject?.ItemDescription
-                ? outerObject?.ItemDescription
-                : "N/A"}
+            <TableCell className="global_table" sx={{ width: "360px" }}>
+              {outerObject?.ItemDescription ? outerObject?.ItemDescription : ""}
+            </TableCell>
+            <TableCell
+              className="global_table"
+              align="center"
+              style={{ minWidth: "auto" }}
+            >
+              {outerObject?.TCount ? outerObject?.TCount : 1}
+            </TableCell>
+            <TableCell className="global_table" align="center">
+              {/* <FaExternalLinkAlt
+                style={{ cursor: "pointer", color: "#1054ad" }}
+                onClick={handleLink}
+              /> */}
+              <IconButton onClick={(event) => setAnchorE3(event.currentTarget)}>
+                <IoEllipsisVerticalSharp
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "17px",
+                  }}
+                />
+              </IconButton>
+              {anchorE3 && (
+                <LongMenu
+                  anchorEl={anchorE3}
+                  handleClose={handleMenuClose}
+                  Items={[
+                    {
+                      text: (
+                        <>
+                          <IoMdSearch fontSize={18} color="#1054ad" />
+                          &nbsp; Search
+                        </>
+                      ),
+                      onClick: async () => {
+                        handleLink();
+                        handleMenuClose();
+                        await EventsAPIs(batchId, WEB_SEARCH_CLUSTERED);
+                      },
+                    },
+                  ]}
+                />
+              )}
             </TableCell>
           </>
         )}
       </TableRow>
       <TableRow sx={{ pl: 0, mr: 0, border: "none" }}>
         <TableCell
-          className="custom-scrollbar innertable"
+          className="global_table custom-scrollbar innertable"
           style={{
             padding: 0,
             overflowX: "overlay",
@@ -387,6 +617,7 @@ const Row = ({
             border: "none",
           }}
           colSpan={6}
+          // onClick={handleScrollbarClick}
         >
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box
@@ -396,13 +627,16 @@ const Row = ({
                 size="small"
                 aria-label="purchases"
                 sx={{ overflowX: "auto" }}
-                className="InnerTable"
+                className="InnerTable table"
+                ref={onRef}
               >
-                <TableHead>
+                <TableHead className="head">
                   <TableRow>
                     {columns.map((column) => (
                       <TableCell
-                        key={column.uniqueId}
+                        className="global_table"
+                        key={column.id}
+                        align="center"
                         sx={{
                           bgcolor: "#565960",
                           color: "#fff",
@@ -418,17 +652,22 @@ const Row = ({
                   {innerArray && innerArray.length > 0 ? (
                     innerArray.map((innerRow, ind) => (
                       <TableRow key={innerRow?.uniqueId}>
-                        <TableCell component="td" scope="row">
+                        <TableCell
+                          className="global_table"
+                          component="td"
+                          align="center"
+                          scope="row"
+                        >
                           {innerRow?.ManufacturerId
                             ? innerRow?.ManufacturerId
-                            : "N/A"}
+                            : ""}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="global_table" align="center">
                           {innerRow?.ManufacturerCatalogNumber
                             ? innerRow?.ManufacturerCatalogNumber
-                            : "N/A"}
+                            : ""}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="global_table" align="center">
                           <Tooltip
                             componentsProps={{
                               tooltip: {
@@ -451,145 +690,164 @@ const Row = ({
                             <Typography className="item_description">
                               {innerRow?.ItemDescription
                                 ? innerRow?.ItemDescription
-                                : "N/A"}
+                                : ""}
                             </Typography>
                           </Tooltip>
                         </TableCell>
+                        <TableCell className="global_table" align="center">
+                          {innerRow?.Company ? innerRow?.Company : ""}
+                        </TableCell>
 
-                        {innerRow?.isEditRow &&
-                          isEditClick === innerRow?.uniqueId &&
-                          columns.slice(3, columns.length - 1).map((column) => (
-                            <TableCell key={column.id} sx={{ p: 0 }}>
-                              <TextField
-                                fullWidth
-                                variant="outlined"
-                                name={column.label}
-                                type="text"
-                                // defaultValue={innerRow[column?.label]}
-                                value={
-                                  focusedColumn === column.id
-                                    ? editValue
-                                    : innerRow[column.columnKey]
-                                }
-                                onChange={(e) => {
-                                  setEditValue(e.target.value);
-                                  // console.log("inde", arrayIndex)
-                                }}
-                                onFocus={() => {
-                                  setFocusedColumn(column.id);
-                                  setEditValue(innerRow[column.columnKey]);
-                                }}
-                                onBlur={() => {
-                                  innerRow[column.columnKey] = editValue;
-                                  innerArray[arrayIndex] = innerRow;
-                                  setInnerArray(innerArray);
-                                  setEditValue("");
-                                  setFocusedColumn(null);
-                                }}
-                                className={classes.textField}
-                                // className="Shavim"
-                                InputProps={{ className: "InputProps" }}
-                                inputProps={{ className: "inputPropsInner" }} // this is for design in input, inside textField
-                              />
-                            </TableCell>
-                          ))}
-
-                        {innerRow?.uniqueId !== isEditClick && (
+                        {editClickID === innerRow?.uniqueId ? (
                           <>
-                            <TableCell>
-                              {innerRow?.Company
-                                ? innerRow?.Company
-                                : innerRow?.isEditRow
-                                ? innerRow?.Company
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.Group
-                                ? innerRow?.Group
-                                : innerRow?.isEditRow
-                                ? innerRow?.Group
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.Business
-                                ? innerRow?.Business
-                                : innerRow?.isEditRow
-                                ? innerRow?.Business
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.Division
-                                ? innerRow?.Division
-                                : innerRow?.isEditRow
-                                ? innerRow?.Division
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.Therapy
-                                ? innerRow?.Therapy
-                                : innerRow?.isEditRow
-                                ? innerRow?.Therapy
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.Specialty
-                                ? innerRow?.Specialty
-                                : innerRow?.isEditRow
-                                ? innerRow?.Specialty
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.Anatomy
-                                ? innerRow?.Anatomy
-                                : innerRow?.isEditRow
-                                ? innerRow?.Anatomy
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.SubAnatomy
-                                ? innerRow?.SubAnatomy
-                                : innerRow?.isEditRow
-                                ? innerRow?.SubAnatomy
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.ProductCategory
-                                ? innerRow?.ProductCategory
-                                : innerRow?.isEditRow
-                                ? innerRow?.ProductCategory
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.ProductFamily
-                                ? innerRow?.ProductFamily
-                                : innerRow?.isEditRow
-                                ? innerRow?.ProductFamily
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.Model
-                                ? innerRow?.Model
-                                : innerRow?.isEditRow
-                                ? innerRow?.Model
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.productCode
-                                ? innerRow?.productCode
-                                : innerRow?.isEditRow
-                                ? innerRow?.productCode
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {innerRow?.productCodeName
-                                ? innerRow?.productCodeName
-                                : innerRow?.isEditRow
-                                ? innerRow?.productCodeName
-                                : "N/A"}
+                            {innerRow?.isEditRow !== 1 && (
+                              <NotEditableFieldsComponent innerRow={innerRow} />
+                            )}
+                            {columns
+                              .slice(
+                                innerRow?.isEditRow === 1
+                                  ? 4
+                                  : columns.length - 2, //this is only last field slice(start) (Notes: editable field)
+                                columns.length - 1
+                              )
+                              .map((column) => (
+// ..................Editable Autocomplete for each field........................................
+                                <TableCell
+                                  className="global_table"
+                                  key={column.id}
+                                  sx={{ p: 0 }}
+                                >
+                                  <Autocomplete
+                                    id={`autocomplete-${column.id}`} // Unique ID for each Autocomplete component
+                                    freeSolo
+                                    options={
+                                      focusedColumn === "model"
+                                        ? modelOptions
+                                        : options
+                                    }
+                                    // OnInputChange of reason is working with value instead of inputValue
+                                    // value={innerRow[column.columnKey] ? innerRow[column.columnKey].toString() : ""}
+                                    value={
+                                      focusedColumn === column.id
+                                        ? editValue
+                                        : innerRow[column.columnKey] !==
+                                          undefined
+                                        ? innerRow[column.columnKey]
+                                        : ""
+                                    }
+                                    onInputChange={(event, newValue, reason) => {
+                                      // console.log("reason", reason);
+                                      // console.log("editValue", newValue);
+
+                                      // Check for reset action means focusing to the field
+                                      if(reason === "reset"){
+                                        // console.log("reset",column.id)
+                                        setEditValue(innerRow[column.columnKey])
+                                      } else {
+                                        // Set new value if not reset
+                                        setEditValue(newValue);
+                                      }
+
+                                      // Check for input action means input changing to the field
+                                      if(reason === "input"){
+                                        if (newValue.length >= 100 && newValue.length <= 150 && focusedColumn) {
+                                          setSnackbar({
+                                            open: true,
+                                            severity: "warning",
+                                            message:
+                                              "You have crossed the limit of 100 characters.",
+                                          });
+                                        }
+                                        if (newValue.length >= 200 && focusedColumn) {
+                                          setSnackbar({
+                                            open: true,
+                                            severity: "error",
+                                            message:
+                                              "You have reached the maximum limit of 200 characters.",
+                                          });
+                                        }
+                                      }
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.target.value.length >= 200 && focusedColumn) {
+                                        setSnackbar({
+                                          open: true,
+                                          severity: "error",
+                                          message:
+                                            "You have reached the maximum limit of 200 characters.",
+                                        });
+                                      }
+                                    }}
+                                    PaperComponent={CustomPaper}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        variant="outlined"
+                                        name={column.label}
+                                        type="text"
+                                        className={classes.textField}
+                                        // autoComplete="off"
+                                        onFocus={() => {
+                                          // console.log("focus",column.id)
+                                          setFocusedColumn(column.id);
+                                          // Reset edit value to the current row data value when the field is focused
+                                          // setEditValue(innerRow[column.columnKey]);
+                                        }}
+                                        onBlur={() => {
+                                          // console.log("blur", editValue);
+                                          const cleanString = editValue ? removeSpacesAndNonASCII(editValue) : "";
+                                          const updatedInnerArray = [...innerArray]; // Create a new array
+                                          const updatedInnerRow = {...innerRow}; // Create a new object for the inner row
+                                          updatedInnerRow[column.columnKey] = cleanString;
+                                          updatedInnerArray[arrayIndex] = updatedInnerRow;
+                                          setInnerArray(updatedInnerArray);
+                                          setEditValue("");
+                                          setFocusedColumn(null);
+                                        }}
+                                        inputProps={{
+                                          ...params.inputProps,
+                                          maxLength: focusedColumn ? 200 : undefined,
+                                        }}
+                                      />
+                                    )}
+                                  />
+                                </TableCell>
+                              ))}
+                          </>
+                        ) : (
+                          <>
+                            <NotEditableFieldsComponent innerRow={innerRow} />
+                            <TableCell className="global_table" align="center">
+                              <Tooltip
+                                componentsProps={{
+                                  tooltip: {
+                                    sx: {
+                                      border: "0.5px solid #333",
+                                      bgcolor: "#fff",
+                                      borderRadius: "10px",
+                                      fontSize: "12px",
+                                      p: 1,
+                                      color: "#333",
+                                    },
+                                  },
+                                }}
+                                title={
+                                  innerRow?.comment ? innerRow?.comment : ""
+                                }
+                              >
+                                <Typography className="item_description">
+                                  {innerRow?.comment
+                                    ? innerRow?.comment
+                                    : innerRow?.isEditRow
+                                    ? innerRow?.comment
+                                    : ""}
+                                </Typography>
+                              </Tooltip>
                             </TableCell>
                           </>
                         )}
-                        <TableCell>
+
+                        <TableCell className="global_table">
                           <Box
                             sx={{
                               display: "flex",
@@ -598,55 +856,6 @@ const Row = ({
                               justifyContent: "flex-end",
                             }}
                           >
-                            {popupOpen.open && (
-                              <Popup
-                                open={popupOpen.open}
-                                overflowY="auto"
-                                height="220px"
-                                outerBoxClass="outerBoxClass"
-                                titleClass="titleClass"
-                                contentClass="contentClass"
-                                title="Alert"
-                                content="Are you sure you want to proceed"
-                                actions={
-                                  <>
-                                    <Button
-                                      className="popupCancel"
-                                      onClick={() => {
-                                        setPopupOpen({ open: false });
-                                        handleMenuClose();
-                                      }}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      className="popupConfirm"
-                                      onClick={() => {
-                                        // Popup for editing row on save & approve Confirm button
-                                        if (popupOpen.type === "save&Approve") {
-                                          approve_OR_saveApprove();
-                                        }
-                                        // Popup for editing row on cancel Confirm button
-                                        if (popupOpen.type === "cancel") {
-                                          removeFromArray();
-                                        }
-                                        // Popup for already exiting row on Approve button
-                                        if (popupOpen.type === "Approve") {
-                                          approve_OR_saveApprove(UniqueId);
-                                          setArrayIndex(null);
-                                        }
-                                        // For close popup and menu's and reset count of add or edit row
-                                        ResetTotalRows();
-                                        setPopupOpen({ open: false });
-                                        handleMenuClose();
-                                      }}
-                                    >
-                                      Confirm
-                                    </Button>
-                                  </>
-                                }
-                              />
-                            )}
 
                             {innerRow?.isEditRow !== undefined &&
                               innerRow?.isEditRow === 1 && (
@@ -655,18 +864,19 @@ const Row = ({
                                     cursor: "pointer",
                                     fontSize: "20px",
                                   }}
-                                  onClick={() => {
-                                    if (totalRow.editRow === 1) {
+                                  // title={disableColon ? ((editClickID === innerRow?.uniqueId && innerRow?.isEditRow === 1) ? undefined : "Already editing the row.") : undefined}
+                                  onClick={async () => {
+                                    if (!disableColon) {
+                                      setEditClickID(innerRow?.uniqueId); // uniqueId set
+                                      setDisableColon(true);
+                                      setArrayIndex(ind); // array index set
+                                      setPreviousRow(innerRow);
+                                    } else {
                                       setSnackbar({
                                         open: true,
                                         severity: "error",
-                                        message:
-                                          "Please save current row first",
+                                        message: "Already editing the row.",
                                       });
-                                    } else {
-                                      setIsEditClick(innerRow?.uniqueId); // uniqueId set
-                                      setTotalRow({ ...totalRow, editRow: 1 });
-                                      setArrayIndex(ind); // array index set
                                     }
                                   }}
                                 />
@@ -678,14 +888,29 @@ const Row = ({
                               //   openMenu ? "long-menu" : undefined
                               // }
                               // aria-expanded={openMenu ? "true" : undefined}
+                              // disabled={
+                              //   disableColon
+                              //     ? editClickID === innerRow?.uniqueId &&
+                              //       innerRow?.isEditRow === 1
+                              //       ? false
+                              //       : true
+                              //     : false
+                              // }
+                              disabled={
+                                disableColon &&
+                                editClickID !== innerRow?.uniqueId
+                                  ? true
+                                  : false
+                              }
                               onClick={(event) => {
+                                // console.log("prv", previousRow)
                                 setArrayIndex(ind); // array index set
+                                setUniqueId(innerRow?.uniqueId); // uniqueId set
+                                // console.log(innerRow?.uniqueId);
                                 if (innerRow?.isEditRow === undefined) {
                                   setAnchorEl(event.currentTarget);
-                                  setUniqueId(innerRow?.uniqueId); // uniqueId set
                                 } else {
                                   setAnchorE2(event.currentTarget);
-                                  setUniqueId(innerRow?.uniqueId);
                                 }
                               }}
                             >
@@ -696,7 +921,8 @@ const Row = ({
                                 }}
                               />
                             </IconButton>
-                            {/* Menu Items of IconButton respectively  */}
+
+                            {/* Menu Items of IconButton for anchorEl and anchorE2 respectively  */}
                             {innerRow?.isEditRow === undefined && anchorEl && (
                               <LongMenu
                                 anchorEl={anchorEl}
@@ -709,7 +935,7 @@ const Row = ({
                                         &nbsp; Approve
                                       </>
                                     ),
-                                    onClick: () => {
+                                    onClick: async () => {
                                       handleApprove();
                                     },
                                   },
@@ -720,9 +946,21 @@ const Row = ({
                                         &nbsp; Add Row
                                       </>
                                     ),
-                                    onClick: () => {
-                                      handleAddRow();
+                                    isDisable: disableRowOption ? true : false,
+                                    onClick: async () => {
+                                      // console.log("heloo");
+                                      const newRow = handleAddRow();
+                                      setDisableRowOption(true);
                                       handleMenuClose();
+                                      // Below condition for making added row editable
+                                      setEditClickID(undefined)
+                                      setDisableColon(true)
+                                      setPreviousRow(newRow);
+                                      setArrayIndex(innerArray.length)
+                                      // await EventsAPIs(
+                                      //   batchId,
+                                      //   ADD_ROW_CLUSTERED
+                                      // );
                                     },
                                   },
                                   {
@@ -732,12 +970,18 @@ const Row = ({
                                         &nbsp; Copy Row
                                       </>
                                     ),
-                                    onClick: () => {
-                                      const copyRow = initializeRow(true);
-                                      saveInJSONFile(1, copyRow);
-                                      setIsEditClick("");
+                                    onClick: async () => {
+                                      // const copyRow = initializeRow(true);
+                                      const copyRow = initializeRow(1);
+                                      await AddEditCopyData(1, copyRow);
+                                      setDisableRowOption(false);
+                                      setEditClickID(null);
                                       setArrayIndex(null);
                                       handleMenuClose();
+                                      await EventsAPIs(
+                                        batchId,
+                                        COPY_ROW_CLUSTERED
+                                      );
                                     },
                                   },
                                 ]}
@@ -761,22 +1005,25 @@ const Row = ({
                                           &nbsp; Save
                                         </>
                                       ),
-                                      onClick: () => {
-                                        // Save_Edited_Data();
-                                        // if (totalRow.editRow === 1) {
-                                        //   setTotalRow({ editRow: 0 });
-                                        // }
-                                        // setIsEditClick("");
-                                        // setArrayIndex(null);
-                                        // handleMenuClose();
-                                        if (UniqueId) {
-                                          Save_Edited_Data();
+                                      onClick: async () => {
+                                        // const isChanges = isValueOfRowChanged()
+                                        // console.log("id",editClickID, "isChange", isChanges)
+                                        if (isValueOfRowChanged()) {
+                                          await AddEditCopyData();
+                                          await EventsAPIs(batchId, SAVE_ROW_CLUSTERED);
+                                          setPreviousRow(null);
                                         } else {
-                                          saveInJSONFile();
+                                          // No rows were edited, show a message or handle as needed
+                                          setSnackbar({
+                                            open: true,
+                                            severity: "warning",
+                                            message:
+                                              "No changes were made to any row.",
+                                          });
                                         }
-
-                                        ResetTotalRows();
-                                        setIsEditClick("");
+                                        setDisableColon(false);
+                                        setDisableRowOption(false);
+                                        setEditClickID(null);
                                         setArrayIndex(null);
                                         handleMenuClose();
                                       },
@@ -788,7 +1035,7 @@ const Row = ({
                                           &nbsp; Save & Approve
                                         </>
                                       ),
-                                      onClick: () => {
+                                      onClick: async () => {
                                         setPopupOpen({
                                           open: true,
                                           type: "save&Approve",
@@ -802,13 +1049,31 @@ const Row = ({
                                             fontSize={19}
                                             color="#E11927"
                                           />
-                                          &nbsp; Cancel
+                                          &nbsp; Delete
                                         </>
                                       ),
-                                      onClick: () => {
+                                      onClick: async () => {
                                         setPopupOpen({
                                           open: true,
-                                          type: "cancel",
+                                          type: "delete",
+                                        });
+                                        await EventsAPIs(
+                                          batchId,
+                                          DELETE_ROW_CLUSTERED
+                                        );
+                                      },
+                                    },
+                                    {
+                                      text: (
+                                        <>
+                                          <GiNotebook fontSize={19} />
+                                          &nbsp; Fill All Fields
+                                        </>
+                                      ),
+                                      onClick: async () => {
+                                        setPopupOpen({
+                                          open: true,
+                                          type: "fill_all_cells",
                                         });
                                       },
                                     },
@@ -821,7 +1086,11 @@ const Row = ({
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell style={{ textAlign: "center" }} colSpan={7}>
+                      <TableCell
+                        className="global_table"
+                        style={{ textAlign: "center" }}
+                        colSpan={7}
+                      >
                         Record Not Found
                         <Button
                           size="medium"
@@ -840,9 +1109,15 @@ const Row = ({
                             borderRadius: "11px",
                             color: "white",
                           }}
-                          onClick={() => {
-                            handleAddRow();
+                          onClick={async () => {
+                            const newRow = handleAddRow();
                             handleMenuClose();
+                            // Below condition for making added row editable
+                            setEditClickID(undefined)
+                            setDisableColon(true)
+                            setPreviousRow(newRow);
+                            setArrayIndex(innerArray.length)
+                            // await EventsAPIs(batchId, ADD_ROW_CLUSTERED);
                           }}
                         >
                           <IoMdAddCircleOutline fontSize={18} /> &nbsp; Add Row
@@ -852,6 +1127,20 @@ const Row = ({
                   )}
                 </TableBody>
               </Table>
+
+              {/* <Avatar
+                variant="circular"
+                  sx={{
+                    width: "30px",
+                    height: "30px",
+                    cursor: "pointer",
+                    // textAlign: "right",
+                  }}
+                  className="rightT"
+                  onClick={handleScrollbarClick}
+                >
+                  <FaAnglesRight />
+                </Avatar> */}
             </Box>
           </Collapse>
         </TableCell>

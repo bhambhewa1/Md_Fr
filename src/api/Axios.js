@@ -32,18 +32,18 @@ axiosInstance.interceptors.request.use(
 );
 
 // Add an Axios interceptor after response from backend to handle token expiration
-// axiosInstance.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     if (error.response && error.response.status === 401) {
-//       // Token expired or unauthorized, handle logout here
-//       Cookies.remove("userToken");
-//       localStorage.clear();
-//       window.location.href = "/login";
-//     }
-//     return Promise.reject(error);
-//   }
-// );
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token expired or unauthorized, handle logout here
+      Cookies.remove("userToken");
+      localStorage.clear();
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Axios Instances
 const axiosGet = axiosInstance;

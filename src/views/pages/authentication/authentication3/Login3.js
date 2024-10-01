@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
@@ -11,6 +11,9 @@ import AuthLogin from '../auth-forms/AuthLogin';
 import Logo from 'ui-component/Logo';
 import AuthFooter from 'ui-component/cards/AuthFooter';
 import images from 'assets/images/images';
+import { useEffect } from 'react';
+import { useMsal } from '@azure/msal-react';
+import { loginRequest } from 'authConfig';
 
 // assets
 
@@ -19,6 +22,37 @@ import images from 'assets/images/images';
 const Login = () => {
   const theme = useTheme();
   const matchDownSM = useMediaQuery(theme.breakpoints.down('md'));
+
+  const { instance } = useMsal();
+  const navigate = useNavigate()
+  const isAuthenticated = instance.getActiveAccount();
+  // useEffect(() => {
+  //   // instance.loginRedirect({...loginRequest, prompt: 'create'}).catch((err) => console.log(err));
+  //   instance.loginRedirect(loginRequest)
+  //   // if(isAuthenticated){
+  //   //   navigate("/dashboard")
+  //   // }
+  // },[])
+  useEffect(() => {
+    // Check if the user is not authenticated before initiating the login process
+    if (!!!isAuthenticated) {
+      instance.loginRedirect({...loginRequest, prompt: 'create'}).catch((err) => console.log(err));
+    }else{
+      navigate("/dashboard")
+    }
+  }, []);
+
+  // useEffect(() => {
+  //   // Check authentication status when the component mounts
+  //   instance.handleRedirectPromise().then(() => {
+  //     if (instance.getAccount()) {
+  //       console.log("autenticated")
+  //     } else {
+  //       console.log("not authenticated"); // User is not authenticated
+  //     }
+  //   });
+  // }, []);
+  // return;
 
   return (
     <AuthWrapper1>

@@ -1,0 +1,16 @@
+.commonTableHeader {
+    background-color: #F1F4F9;
+    font-family: "Nunito Sans";
+    color: #202224;
+    top: auto;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.commonTableCell {
+    font-family: "Nunito Sans";
+    color: #202224;
+    top: auto;
+    font-size: 14px;
+    font-weight: 600;
+}

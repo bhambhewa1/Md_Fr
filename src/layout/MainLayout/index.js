@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 
 // material-ui
 import { styled, useTheme } from '@mui/material/styles';
@@ -99,7 +99,6 @@ const MainLayout = () => {
       {/* <Customization /> */}
     </Box>
       <Footer />
-
     </>
   );
 };

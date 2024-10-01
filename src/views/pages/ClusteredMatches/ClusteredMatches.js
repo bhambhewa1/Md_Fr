@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { MENU_OPEN } from "store/actions";
 import MainCard from "ui-component/cards/MainCard";
-import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -11,35 +10,44 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
-import { IoMdRefresh } from "react-icons/io";
 
 import {
   Autocomplete,
   Button,
   FormControl,
   FormHelperText,
-  TablePagination,
+  Pagination,
+  TableSortLabel,
   TextField,
 } from "@mui/material";
 import "./style.css";
 import Axios from "api/Axios";
 import { API } from "api/API";
+import CustomPaper from "ui-component/components/CustomPaper";
 import Loading from "ui-component/components/Loading";
 import Message from "ui-component/components/Snackbar/Snackbar";
 import Row from "./Row";
 
 const ClusteredMatches = () => {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [options, setOptions] = useState([]);
-  const [reloadCheck, setReloadCheck] = useState(0);
   const [clData, setClData] = useState({});
-  const [company, setCompany] = useState("");
+  const [paginationData, setPaginationData] = useState({});
+  const [company, setCompany] = useState(
+    JSON.parse(localStorage.getItem("Clustered_Company"))?.company
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
   });
+  const [orderBy, setOrderBy] = useState("");
+  const [order, setOrder] = useState("asc");
+  const [batches, setBatches] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState(
+    JSON.parse(localStorage.getItem("Clustered_Company"))?.selectedBatch || {}
+  );
 
   const handleCloseSnackbar = () => {
     setSnackbar({
@@ -50,11 +58,12 @@ const ClusteredMatches = () => {
   };
 
   const dispatch = useDispatch();
-  const Profile_Details = localStorage.getItem("Profile_Details")
-  const Details = JSON.parse(Profile_Details)
+  const Profile_Details = localStorage.getItem("Profile_Details");
+  const Details = JSON.parse(Profile_Details);
 
-  const handleChangePage = (event, newPage) => {
+  const handleChangePage = async (event, newPage) => {
     setPage(newPage);
+    // await GetCompanyData(company, newPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
@@ -63,71 +72,33 @@ const ClusteredMatches = () => {
   };
 
   const serialNumber = (page, index) => {
-    return page * rowsPerPage + index + 1;
+    // return page * rowsPerPage + index + 1;
+    return (page - 1) * paginationData?.rowperpage + index + 1;
   };
 
-  const RefreshAllClusterFiles = async () => {
-    try {
-      setIsLoading(true);
-      const res1 = await Axios.get(API.Download_blobs);
-      if (res1?.data?.success) {
-        // console.log("profile", res.data)
-        const res2 = await Axios.post(API.Upload_all_blobs);
-        if (res2?.data?.success) {
-          const res3 = await Axios.get(API.Give_UniqueID_Backend);
-          if (res3?.data?.success) {
-            setSnackbar({
-              open: true,
-              message: res3.data.message,
-            });
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          }
-        }
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.log("ERROR in fetching all new clustered files", error);
-      setSnackbar({
-        open: true,
-        severity: "error",
-        message: error.message,
-      });
-      setIsLoading(false);
+  const removeSelectedBatch = () => {
+    setSelectedBatch({});
+  };
+
+  const handleClear = () => {
+    removeSelectedBatch();
+    localStorage.removeItem("Clustered_Company");
+    setClData([]);
+    setBatches([]);
+    console.log("selectedBatch", selectedBatch);
+    if (Object.keys(selectedBatch).length > 0) {
+      DeleteLockedUser(selectedBatch);
     }
+    setCompany(null);
+    setPaginationData(null);
   };
 
-  const CheckReloadCluster = async () => {
+  const GetCompaniesName = async () => {
     try {
       setIsLoading(true);
-      const res = await Axios.get(API.Reload_Check);
-      if (res?.data) {
-        // console.log("Check reload", res.data)
-        if (res.data.status) {
-          setReloadCheck(res.data.status);
-          // setSnackbar({
-          //   open: true,
-          //   message: res.data.message,
-          // });
-        }
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.log("ERROR in checking all files are empty or not", error);
-      setSnackbar({
-        open: true,
-        severity: "error",
-        message: error.message,
+      const res = await Axios.post(API.Companies_Name, {
+        categoryFlag: "Clustered",
       });
-      setIsLoading(false);
-    }
-  };
-
-  const GetCompainesName = async () => {
-    try {
-      setIsLoading(true);
-      const res = await Axios.get(API.Companies_Name);
       if (res) {
         // console.log("profile", res.data)
         setOptions(res?.data);
@@ -135,102 +106,219 @@ const ClusteredMatches = () => {
       }
     } catch (error) {
       console.log("ERROR in fetching Companies Names", error);
+      setIsLoading(false);
       setSnackbar({
         open: true,
         severity: "error",
-        message: error.message,
+        // message: error.message,
+        message:
+          error?.response?.data?.error ??
+          error?.response?.data?.message ??
+          error?.message,
       });
-      setIsLoading(false);
     }
   };
 
-  const GetCompanyData = async (data) => {
+  const GetBatchesName = async (newCompany) => {
     try {
       setIsLoading(true);
-      const res = await Axios.post(API.Get_Company_Data, { filename: data, email: Details.email  });
-      if (res) {
-        // console.log("clData", res.data)
-        setClData(res?.data);
-        if (Object.keys(res?.data).length === 0) {
-          GetCompainesName();
+      const res = await Axios.post(API.Batches_Api, {
+        ticker: newCompany,
+        categoryFlag: "Clustered",
+      });
+      if (res && res.data) {
+        const batchesData = res.data.map((batch) => ({
+          batchId: batch.batchId,
+          batchName: batch.batchName,
+        }));
+        setBatches(batchesData);
+        if (Object.keys(selectedBatch).length <= 0) {
+          setSelectedBatch(batchesData[0] || {});
         }
+        // if(Object.keys(selectedBatch).length > 0){
+        //   GetCompanyData();
+        // }
         setIsLoading(false);
       }
     } catch (error) {
-      console.log("ERROR in fetching Company Data", error.response.status);
+      console.log("ERROR in fetching Batches Names", error);
+      setIsLoading(false);
       setSnackbar({
         open: true,
         severity: "error",
-        message: error.response.status === 403 ? error.response.data.error:  error.message,
+        message:
+          error?.response?.data?.error ??
+          error?.response?.data?.message ??
+          error?.message,
       });
-      setIsLoading(false);
     }
   };
 
-  const IsFileLocked = async (data) => {
-    const profile = JSON.parse(localStorage.getItem("Profile_Details"));
+  // number? number: page
+  const GetCompanyData = async (number) => {
+    try {
+      setIsLoading(true);
+      const res = await Axios.post(`${API.Get_Company_Data}?page=${page}`, {
+        filename: company,
+        batchId: selectedBatch?.batchId,
+        category_flag: "Clustered",
+        email: Details.email,
+        ManufacturerCatalogNumber:
+          orderBy === "MCN" && order !== "asc" ? true : false,
+        ItemDescription:
+          orderBy === "ItemDescription" && order !== "asc" ? true : false,
+      });
+      // console.log("hel",res)
+      if (res?.data) {
+        // console.log("clData", res?.data?.tickerData);
+        if (!Array.isArray(res?.data?.tickerData)) {
+          throw new Error("Data coming in wrong format!");
+        }
+        setClData(res?.data?.tickerData);
+        setPaginationData(res?.data?.pagination);
+        // setPage(res?.data?.pagination?.currentPage)
+        // if ( res?.data?.length === 0) {
+        //   GetCompaniesName();
+        // }
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.log("ERROR in fetching Company Data", error);
+      setIsLoading(false);
+      setClData([]);
+      localStorage.removeItem("Clustered_Company");
+      setSnackbar({
+        open: true,
+        severity: "error",
+        autoHideDuration: 6000,
+        message:
+          error?.response?.data?.error ??
+          error?.response?.data?.message ??
+          error?.message,
+      });
+    }
+  };
+
+  const IsFileLocked = async (newBatch) => {
     try {
       setIsLoading(true);
       const res = await Axios.post(API.File_Locked, {
-        email: profile.email,
-        filename: data,
-        name: profile.name,
+        email: Details.email,
+        company_name: company,
+        name: Details.name,
+        category_flag: "Clustered",
+        batchId: newBatch?.batchId,
       });
       if (res?.data) {
         if (res.data.success) {
-          GetCompanyData(data);
+          localStorage.setItem(
+            "Clustered_Company",
+            JSON.stringify({ selectedBatch: newBatch, company })
+          );
+          // GetCompanyData(newCompany, page);
         } else {
           setSnackbar({
             open: true,
             severity: "error",
             message: res.data.message,
           });
-          setCompany("");
+          // setCompany("");
           setIsLoading(false);
         }
       }
     } catch (error) {
       console.log("ERROR in storing user for current file locked", error);
+      setIsLoading(false);
       setSnackbar({
         open: true,
         severity: "error",
-        message: error.message,
+        // message: error?.message
+        message:
+          error?.response?.data?.error ??
+          error?.response?.data?.message ??
+          error?.message,
       });
-      setIsLoading(false);
     }
   };
 
-  const DeleteLockedUser = async (perviousCompany, newCompany) => {
-    const profile = JSON.parse(localStorage.getItem("Profile_Details"));
+  const DeleteLockedUser = async (perviousBatch, newBatch) => {
+    // const profile = JSON.parse(localStorage.getItem("Profile_Details"));
     try {
       setIsLoading(true);
       const res = await Axios.post(API.Delete_User_Locked, {
-        email: profile.email,
-        filename: perviousCompany,
+        email: Details.email,
+        company_name: company,
+        category_flag: "Clustered",
+        batchId: perviousBatch?.batchId,
       });
       if (res?.data) {
-        // console.log("delete locked user", res.data);
-        if (newCompany) {
-          IsFileLocked(newCompany);
-        } else {
-          setIsLoading(false);
-        }
+        //   // console.log("delete locked user", res.data);
+        //   if (newBatch) {
+        //     IsFileLocked(newBatch);
+        //   } else {
+        setIsLoading(false);
+        // }
       }
     } catch (error) {
       console.log("ERROR in deleting user locked, if file closed", error);
       setSnackbar({
         open: true,
         severity: "error",
-        message: error.message,
+        // message: error?.message
+        message:
+          error?.response?.data?.error ??
+          error?.response?.data?.message ??
+          error?.message,
       });
       setIsLoading(false);
     }
   };
 
+  const handleRequestSort = async (property) => {
+    // console.log(property)
+    // let orderValue = "";
+    if (orderBy === property) {
+      const isAsc = order === "asc";
+      // orderValue = isAsc ? 'desc' : 'asc';
+      setOrder(isAsc ? "desc" : "asc");
+    } else {
+      // orderValue = 'desc';
+      setOrder("desc");
+      setOrderBy(property);
+    }
+    // await GetCompanyData(company, page, property, orderValue);
+
+    // const isAsc = orderBy === property && order === 'asc';
+    // // console.log("order",isAsc)
+    // setOrder(isAsc ? 'desc' : 'asc');
+    // setOrderBy(property);
+  };
+
+  useEffect(() => {
+    if (Object.keys(selectedBatch).length > 0) {
+      GetCompanyData();
+    }
+  }, [page, order, orderBy]);
+
+  useEffect(() => {
+    if (Object.keys(selectedBatch).length > 0) {
+      IsFileLocked(selectedBatch);
+      GetCompanyData();
+    }
+  }, [selectedBatch]);
+
+  useEffect(() => {
+    if (company) {
+      setTimeout(() => {
+        GetBatchesName(company);
+        // GetCompanyData();
+      }, 500);
+    }
+  }, [company]);
+
   useEffect(() => {
     dispatch({ type: MENU_OPEN, id: "Clustered" });
-    CheckReloadCluster();
-    GetCompainesName();
+    GetCompaniesName();
   }, []);
 
   return (
@@ -242,7 +330,7 @@ const ClusteredMatches = () => {
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          mb: 2,
+          mb: 3,
         }}
       >
         <Typography className="company_filter"> Company Filter </Typography>
@@ -251,19 +339,20 @@ const ClusteredMatches = () => {
           name="company"
           options={options}
           getOptionLabel={(option) => option || ""}
-          clearIcon={<></>} //One Benefit, their is no need to give functionality on clear button(only onChange)
+          disableClearable
           onChange={(_, newValue) => {
-            // console.log(newValue, "hello");
-            setClData({});
-            setPage(0);
-            if (newValue) {
-              if (company) {
-                DeleteLockedUser(company, newValue);
-              } else {
-                IsFileLocked(newValue);
-              }
+            // if (newValue) {
+            if (Object.keys(selectedBatch).length > 0) {
+              DeleteLockedUser(selectedBatch);
             }
+            localStorage.removeItem("Clustered_Company");
+            setBatches([]);
+            setClData([]);
+            setSelectedBatch({});
+            setPage(1);
             setCompany(newValue || "");
+            // GetBatchesName(newValue);
+            // }
           }}
           value={options.find((item) => item === company) || null}
           isOptionEqualToValue={(option, value) => {
@@ -272,6 +361,7 @@ const ClusteredMatches = () => {
             }
             return false;
           }}
+          PaperComponent={CustomPaper}
           renderOption={(prop, option) => <li {...prop}>{option}</li>}
           renderInput={(params) => (
             <TextField
@@ -286,6 +376,43 @@ const ClusteredMatches = () => {
           key={(option) => option}
           noOptionsText="No Results Found"
         />
+        <Typography className="company_filter" sx={{ ml: 2 }}>
+          Batches
+        </Typography>
+
+        <Autocomplete
+          disableClearable
+          id="batch-autocomplete"
+          options={batches}
+          getOptionLabel={(option) => option?.batchName || ""}
+          onChange={(e, newValue) => {
+            setClData([]);
+            setPage(1);
+            // if (newValue) {
+            if (Object.keys(selectedBatch).length > 0) {
+              DeleteLockedUser(selectedBatch, newValue);
+            }
+            // else {
+            //   IsFileLocked(newValue);
+            // }
+            // }
+            setSelectedBatch(newValue);
+          }}
+          value={selectedBatch}
+          PaperComponent={CustomPaper}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              variant="outlined"
+              className="selectbar"
+              placeholder="Select batches"
+              sx={{ width: "300px", ml: 3 }}
+            />
+          )}
+          key={(option) => option}
+          noOptionsText="No Results Found"
+        />
+
         <Button
           size="large"
           variant="contained"
@@ -298,35 +425,11 @@ const ClusteredMatches = () => {
             color: "white",
           }}
           onClick={() => {
-            setClData({});
-            if (company) {
-              DeleteLockedUser(company);
-            }
-            setCompany(null);
+            handleClear();
           }}
         >
           CLEAR
         </Button>
-
-        {reloadCheck !== 0 && (
-          <Button
-            size="large"
-            variant="contained"
-            color="secondary"
-            style={{
-              marginLeft: "auto",
-              background: "#E11927",
-              padding: "12px 20px",
-              borderRadius: "15px",
-              color: "white",
-            }}
-            onClick={() => {
-              RefreshAllClusterFiles();
-            }}
-          >
-            <IoMdRefresh fontSize={22} /> &nbsp; RELOAD
-          </Button>
-        )}
       </FormControl>
 
       <TableContainer
@@ -337,7 +440,9 @@ const ClusteredMatches = () => {
         <Table stickyHeader aria-label="collapsible table">
           <TableHead>
             <TableRow className="custom-scrollbar">
-              <TableCell sx={{ bgcolor: "#40434E", color: "#fff", textAlign: "center"}}>
+              <TableCell
+                sx={{ bgcolor: "#40434E", color: "#fff", textAlign: "center" }}
+              >
                 #
               </TableCell>
               <TableCell
@@ -351,80 +456,108 @@ const ClusteredMatches = () => {
                 sx={{ bgcolor: "#40434E", color: "#fff" }}
               >
                 MCN
+                {clData.length > 1 && (
+                  <TableSortLabel
+                    className="sortLabel"
+                    active={true}
+                    direction={orderBy === "MCN" ? order : "asc"}
+                    // onClick={createSortHandler("MCN")}
+                    onClick={() => {
+                      handleRequestSort("MCN");
+                    }}
+                  />
+                )}
               </TableCell>
               <TableCell
                 align="center"
                 sx={{ bgcolor: "#40434E", color: "#fff" }}
               >
-                ItemDescription
+                Item Description
+                {/* <TableSortLabel
+                  // active={column.columnKey === "ItemDescription"}
+                  active={true}
+                  direction={orderBy === "ItemDescription" ? order : "asc"}
+                  // onClick={createSortHandler("ItemDescription")}
+                  onClick={() => {
+                    handleRequestSort("ItemDescription")
+                  }}
+                /> */}
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{ bgcolor: "#40434E", color: "#fff" }}
+              >
+                T-Count
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{ bgcolor: "#40434E", color: "#fff" }}
+              >
+                Actions
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {/* {console.log("original ", clData)} */}
-            {clData && Object.keys(clData).length > 0 ? (
-              Object.keys(clData)
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((matchingKey, index) => {
-                  let parent_id = "";
-                  let outerObject = {};
-                  let innerArray = [];
 
-                  try {
-                    // GET PARENT ID
-                    parent_id = matchingKey.match(/parent_id:(\d+)/);
-                    parent_id = parent_id[1];
-
-                    // GET OBJECT FROM KEY
-                    const match = matchingKey.match(/\{(.+?)\}/);
-                    const objectString = match[0];
-                    // Convert the object string to a valid JSON format
-                    const validJsonString = objectString.replace(/'/g, '"');
-                    // Parse the JSON string to get the object
-                    outerObject = JSON.parse(validJsonString);
-
-                    //  GET ARRAY FROM KEY
-                    innerArray = Array.isArray(clData[matchingKey])
-                      ? clData[matchingKey]
-                      : [];
-                  } catch (error) {
-                    // console.log("matching key", matchingKey);
-                    console.log("error ", error);
-                  }
+            {clData && clData.length > 0 ? (
+              clData
+                // .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((item, index) => {
+                  let parent_id = item?._id;
+                  let batchId = item?.batchId;
+                  let outerObject = item?.data;
+                  const innerArray = item?.data?.Clustered_point;
 
                   return (
                     <Row
                       key={parent_id}
                       parent_id={parent_id}
+                      batchId={batchId}
                       outerObject={outerObject}
                       defaultArray={innerArray}
                       index={serialNumber(page, index)}
-                      company={company}
+                      // company={company}
+                      page={page}
+                      // setPage={setPage}
+                      setPage={
+                        page !== 1 && clData.length === 1 ? setPage : "samePage"
+                      }
                       GetCompanyData={GetCompanyData}
+                      // clData={clData}
                     />
                   );
                 })
             ) : (
               <TableRow>
                 <TableCell style={{ textAlign: "center" }} colSpan={6}>
-                  Please select a company first.
+                  {company
+                    ? "No Record Found"
+                    : "Please select a company first."}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+        {clData?.length > 0 && paginationData?.totalPages > 1 && (
+          <Pagination
+            count={paginationData?.totalPages}
+            defaultPage={1}
+            page={page}
+            onChange={handleChangePage}
+            siblingCount={1}
+            boundaryCount={1}
+            color="primary"
+            className="pagination"
+            sx={{
+              mt: 3,
+              width: "100%",
+              display: "flex",
+              justifyContent: { xs: "center", md: "flex-end" },
+            }}
+          />
+        )}
       </TableContainer>
-
-      <TablePagination
-        className="pagination"
-        rowsPerPageOptions={[50, 100]}
-        component="div"
-        count={Object.keys(clData).length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
       <Loading isLoading={isLoading} height={80} width={80} color="#15223F" />
       <Message snackbar={snackbar} handleCloseSnackbar={handleCloseSnackbar} />
     </>

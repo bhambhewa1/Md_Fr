@@ -5,14 +5,18 @@ import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
 import { Box, Modal } from "@mui/material";
 
-const Popup = ({ open, onClose, title, content, actions, overflowY, height,outerBoxClass, titleClass, contentClass, actionsClass }) => {
+const Popup = ({ open, onClose, title, content, actions, overflowY, height, width, outerBoxClass, titleClass, contentClass, actionsClass }) => {
   const style = {
     position: "absolute",
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: "500px",
-    maxWidth: 600,
+    // width: "500px",
+    // maxWidth: 600,
+    // minWidth: "500px",
+    width: width,
+    minWidth: 500,
+    // maxWidth: 1000,
     borderRadius: 4,
     boxShadow: 24,
     // p: 2,
@@ -25,6 +29,9 @@ const Popup = ({ open, onClose, title, content, actions, overflowY, height,outer
       open={open}
       aria-labelledby="modal-modal-title"
       aria-describedby="modal-modal-description"
+      sx={{
+        
+      }}
     >
       <Box className={outerBoxClass} sx={style}>
         {title && (

@@ -1,9 +1,20 @@
-import { createStore } from 'redux';
-import reducer from './reducer';
+import { configureStore } from "@reduxjs/toolkit";
+import reducer from "./reducer";
+import { persistStore } from "redux-persist";
 
 // ==============================|| REDUX - MAIN STORE ||============================== //
 
-const store = createStore(reducer);
-const persister = 'Free';
+// Create the Redux store
+const store = configureStore({
+  reducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
+});
 
-export { store, persister };
+// Create the persisted store
+const persistor = persistStore(store);
+
+// Export the store and persistor
+export { store, persistor };

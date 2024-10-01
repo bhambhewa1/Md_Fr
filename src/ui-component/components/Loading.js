@@ -1,7 +1,7 @@
 import { style, textAlign } from "@mui/system";
 import React from "react";
 import Loader, { Bars } from "react-loader-spinner";
-import './style.css'
+import './Loading_style.css'
 
 const Loading = ({ isLoading, height, width, color }) => {
   return (

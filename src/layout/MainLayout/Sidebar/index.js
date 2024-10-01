@@ -40,6 +40,7 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
           <MenuList />
           {/* <MenuCard /> */}
           {/* <Stack direction="row" justifyContent="center" sx={{ mb: 2 }}>
+            {console.log(process.env.Hello, "hello")}
             <Chip label={process.env.REACT_APP_VERSION} disabled chipcolor="secondary" size="small" sx={{ cursor: 'pointer' }} />
           </Stack> */}
         </PerfectScrollbar>

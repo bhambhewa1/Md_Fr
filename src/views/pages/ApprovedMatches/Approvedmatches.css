@@ -1,0 +1,37 @@
+.approved_filter{
+    font-size: 14.5px;
+    color: #333;
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+}
+
+.searchbar_formControl {
+    background: #fff;
+    padding: 12px;
+    max-width: 700px;
+    justify-content: end;
+    float: right;
+    border-radius: 12px;
+    position: absolute;
+    bottom: -101px;
+    z-index: 9;
+    right: 0;
+}
+
+
+.approved_searchbar{
+    width: 100%;
+}
+
+
+/* Media query for different screen */
+@media screen and (min-width: 600px) {
+    .approved_filter1{
+        min-width: 99px;
+    }
+    .approved_filter2{
+        min-width: 77px;
+    }
+}

@@ -62,8 +62,11 @@ const Header = ({ handleLeftDrawerToggle }) => {
       {/* header search */}
       {/* <SearchSection /> */}
       <Box sx={{display:"flex", flexDirection:"column", pl: 7}}>
-      <Typography variant="h2"> DATA HELPER </Typography>
-      <Typography variant="subtitle2"> <img src={ images.home } alt="home" /><Link to={location.pathname}>{location.pathname}</Link>  </Typography>
+      <Typography variant="h2"> HEALTH CARE UI </Typography>
+      <Typography variant="subtitle2" style={{display:'flex', alignItems:"flex-start", gap:"5px", mt:2}}>
+      <Link to="/">
+            <img src={images.home} alt="home" />
+          </Link><Link to={location.pathname}>{location.pathname==='/' ? '/dashboard' : location.pathname}</Link>  </Typography>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
       <Box sx={{ flexGrow: 1 }} />

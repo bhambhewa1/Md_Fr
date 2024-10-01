@@ -32,12 +32,12 @@ const LongMenu = ({ anchorEl, handleClose, Items }) => {
         PaperProps={{
           style: {
             maxHeight: ITEM_HEIGHT * 4.5,
-            width: "20ch",
+            // width: "20ch",
           },
         }}
       >
         {Items.map((Item, index) => (
-          <MenuItem key={index} onClick={Item.onClick}>
+          <MenuItem key={index} disabled={Item.isDisable} onClick={Item.onClick}>
             {Item.text}
           </MenuItem>
         ))}

@@ -3,6 +3,9 @@
   <head>
     <title>MedMine</title>
     <link rel="icon" href="%PUBLIC_URL%/image.png" />
+    
+    <!-- Import Google Fonts CSS using link tag -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap">
 
     <!-- Meta Tags-->
     <meta charset="utf-8" />
@@ -45,4 +48,41 @@
           To create a production bundle, use `npm run build` or `yarn build`.
    -->
   </body>
+
+  <!-- <script>
+      
+    const ws = new WebSocket('ws://192.168.75.40:8000');
+    // const Profile_Details = localStorage.getItem("Profile_Details");
+    // const Details = JSON.parse(Profile_Details);
+
+    let Details;
+    try {
+        const Profile_Details = localStorage.getItem("Profile_Details");
+        if (Profile_Details) {
+            Details = JSON.parse(Profile_Details);
+        }
+    } catch (error) {
+        console.error("Error accessing localStorage:", error);
+    }
+    console.log("Retrieved data from localStorage:", Details);
+    const sendClosingMessage = () => {
+
+      // console.log("Detail",Details?.email)
+      // setTimeout(() => {
+        ws.send(Details?.email);
+      // }, 500);
+    };
+
+    window.onbeforeunload = function() {
+      // Delay closing the connection to ensure message is sent
+      
+        sendClosingMessage();
+      
+
+      setTimeout(() => {
+        ws.close();
+    }, 1000); // 1000 milliseconds delay
+};
+    </script> -->
+
 </html>

@@ -27,7 +27,7 @@
     text-overflow: ellipsis;
 }
 
-td {
+td.global_table {
   border: none !important;
   border-bottom: 0.5px solid #c5bcbc !important;
   border-right: 0.5px solid #c5bcbc !important;
@@ -39,18 +39,28 @@ td {
   font-weight: 400 !important;
   line-height: normal !important;
   width: auto !important;
+  min-width: 202px;
+  max-width: 300px;
 }
 
+.textWraping {
+  /* Properties to handle long text */
+  word-break: break-word; /* or try break-all */
+  overflow-wrap: anywhere; /* or try break-word */
+  white-space: normal; /* Ensures text wraps to next line */
+}
 
-td:first-child {
+td.global_table:first-child {
   border-left: none !important;
+  min-width: auto;
 }
 
-td:last-child {
+td.global_table:last-child {
   border-right: none !important;
+  min-width: auto;
 }
 
-th {
+th.head{
   color: #FFF !important;
   font-family: Roboto !important;
   font-size: 20px !important;
@@ -60,7 +70,7 @@ th {
   border-bottom: 0.5px solid #c5bcbc !important;
   text-wrap: nowrap;
 }
-.innertable th {
+.innerTable th.head {
   font-size: 18px !important;
 }
 
@@ -72,7 +82,8 @@ p.company_filter {
   font-weight: 700;
   line-height: normal;
 }
-main.mainTheme .css-e5ffgh-MuiPaper-root-MuiCard-root {
+
+/* main.mainTheme .css-e5ffgh-MuiPaper-root-MuiCard-root {
   border-color: #dfdfdf;
 }
 main.mainTheme .css-1nvdc5e-MuiCardHeader-root {
@@ -88,16 +99,28 @@ main.mainTheme .css-1nvdc5e-MuiCardHeader-root {
 }
 .css-nbr19s-MuiDivider-root {
   border-color: #dfdfdf;
-}
+} */
+
 main.mainTheme .custom-scrollbar {
-  border-bottom-left-radius: 0px;
-  border-bottom-right-radius: 0px;
-}
-.pagination {
-  background: #fff;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
+  padding-bottom: 24px;
   margin-bottom: 40px;
+}
+
+.pagination {
+  background: #fff;
+  /* border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px; */
+  /* margin-bottom: 40px; */
+}
+
+.pagination .Mui-selected {
+  background-color: #40434E;
+}
+
+.pagination .Mui-selected:hover {
+  background-color: #40434E;
 }
 
 .outerBoxClass {
@@ -197,13 +220,36 @@ main.mainTheme .custom-scrollbar {
 } */
 
 .inputPropsInner {
-  font-size: 16px;
-  font-weight: 100;
+  /* font-size: 16px; */
+  /* font-weight: 100; */
   /* background-color: #e3e3e3; */
+  background-color: red;
   /* color: black;
   border-radius: unset !important; */
 }
 
 /* .InnerTable td {
   text-wrap: nowrap;
+} */
+
+/* 
+.css-1xgctb-MuiButtonBase-root-MuiTableSortLabel-root.Mui-active .MuiTableSortLabel-icon {
+  opacity: 1;
+  color: #dddddd;
+} */
+.sortLabel svg {
+  color: white !important;
+  opacity: 1;
+}
+
+/* .rightT {
+  position: absolute;
+  top: 50%;
+  left: 96%;
+  transform: translate(0,-50%);
+  z-index: 999; 
+}
+
+.InnerTable {
+  position: relative;
 } */

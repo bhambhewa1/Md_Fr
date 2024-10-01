@@ -6,7 +6,7 @@ const Footer = () => {
     <>
       <div className='footer'>
         <p>
-        Copyright © 2023 MedMine, LLC. All rights reserved.
+        Copyright © {new Date().getFullYear()} MedMine, LLC. All rights reserved.
         </p>
       </div>
     </>
