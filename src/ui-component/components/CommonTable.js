@@ -16,7 +16,8 @@ const CommonTable = ({ columns, MainDataArray, serial }) => {
   const serialNumber = (index) => {
     return serial + index + 1;
   };
-
+  
+  // Multiple columKeys are allowed by spacing to get merge in a single column like {columnKey:"firstName lastName", label:"userName"}
   return (
     <>
       <TableContainer
@@ -55,7 +56,7 @@ const CommonTable = ({ columns, MainDataArray, serial }) => {
                       {columns &&
                         columns.slice(0, columns.length).map((column) => (
                           <TableCell key={column.id} align="center" className="commonTableCell">
-                            {rowData[column.columnKey]}
+                            {column.columnKey.split(" ").map((item) => rowData[item]).join(" ")}
                           </TableCell>
                         ))}
                     </TableRow>
